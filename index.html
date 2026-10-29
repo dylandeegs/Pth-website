@@ -192,9 +192,13 @@ function setupLair(){
   // Each station is a short looping clip laid over one spot of the lair (box = fraction of the lair image).
   // While a station plays, the standing man at the bottom is covered by an empty-floor patch.
   var FLOOR = {src:'images/stations/floor-empty.jpg', l:540/1376, t:588/768, w:320/1376, h:180/768};
-  var SOCIALS = ['z-social','z-facebook','z-tiktok','z-instagram','z-twitter'];
+  // Each social sits him at a different monitor. The wide "Social (all)" strip keeps whichever social was shown last
+  // (or Instagram if none), so sliding between the icons doesn't flicker.
   var STATIONS = {
-    typing:  {src:'videos/stations/typing.mp4',    l:740/1376, t:280/768, w:320/1376, h:180/768, zones:SOCIALS},
+    facebook:  {src:'videos/stations/facebook.mp4', l:400/1376, t:270/768, w:320/1376, h:180/768, zones:['z-facebook'], social:true},
+    tiktok:    {src:'videos/stations/tiktok.mp4',   l:630/1376, t:351/768, w:320/1376, h:99/768, zones:['z-tiktok'],   social:true},
+    instagram: {src:'videos/stations/typing.mp4',   l:740/1376, t:280/768, w:320/1376, h:180/768, zones:['z-instagram'], social:true},
+    x:         {src:'videos/stations/x.mp4',        l:820/1376, t:290/768, w:320/1376, h:180/768, zones:['z-twitter'],  social:true},
     twitch:  {src:'videos/stations/twitch-v2.mp4', l:480/1376, t:250/768, w:320/1376, h:180/768, zones:['z-twitch']},
     kick:    {src:'videos/stations/kick.mp4',      l:620/1376, t:265/768, w:320/1376, h:180/768, zones:['z-kick']},
     spotify: {src:'videos/stations/spotify.mp4',   l:930/1376, t:250/768, w:320/1376, h:180/768, zones:['z-spotify']},
@@ -236,6 +240,15 @@ function setupLair(){
       zEl.addEventListener('mouseleave', hideStation);
     });
   });
+  var lastSocial = STATIONS.instagram;
+  var socialStrip = document.getElementById('z-social');
+  if(socialStrip){
+    socialStrip.addEventListener('mouseenter', function(){ showStation(current && current.social ? current : lastSocial); });
+    socialStrip.addEventListener('mouseleave', hideStation);
+  }
+  stationEls.forEach(function(s){ if(s.social) s.zones.forEach(function(zid){
+    var zEl = document.getElementById(zid); if(zEl) zEl.addEventListener('mouseenter', function(){ lastSocial = s; });
+  }); });
   stationEls.push({el:floorEl, l:FLOOR.l, t:FLOOR.t, w:FLOOR.w, h:FLOOR.h});
 
   function layout(){
