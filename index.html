@@ -34,6 +34,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#fff;font-family:Ari
 #tooltip{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);border:1px solid rgba(255,255,255,0.15);padding:8px 20px;border-radius:4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity 0.25s;color:#fff;white-space:nowrap;}
 .ripple{position:fixed;border-radius:50%;background:rgba(255,255,255,0.2);pointer-events:none;animation:rpl 0.55s ease-out forwards;transform:translate(-50%,-50%);}
 @keyframes rpl{from{width:0;height:0;opacity:1;}to{width:90px;height:90px;opacity:0;}}
+/* Hover animations: small clips laid over the lair, edges feathered so they blend in */
+.station{position:absolute;pointer-events:none;opacity:0;transition:opacity 0.25s ease;object-fit:fill;
+  -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);
+          mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);}
+.station.on{opacity:1;}
 </style>
 </head>
 <body>
@@ -166,22 +171,49 @@ function setupLair(){
   var container=document.getElementById('lair-container');
 
   // Zone definitions as % of lair image dimensions
-  // Based on final lair image (1376x768) with all logos placed
+  // Positions set by Dylan in the Lair Zone Editor (Oct 29, 2026)
   var zoneDefs = [
-    {id:'z-youtube',   l:0.01, t:0.10, w:0.14, h:0.55, url:LINKS.youtube},
-    {id:'z-spotify',   l:0.76, t:0.28, w:0.10, h:0.42, url:LINKS.spotify},
-    {id:'z-social',    l:0.30, t:0.05, w:0.42, h:0.20, url:LINKS.social},
-    {id:'z-facebook',  l:0.32, t:0.05, w:0.08, h:0.14, url:LINKS.facebook},
-    {id:'z-tiktok',    l:0.40, t:0.05, w:0.08, h:0.14, url:LINKS.tiktok},
-    {id:'z-instagram', l:0.60, t:0.05, w:0.08, h:0.14, url:LINKS.instagram},
-    {id:'z-twitter',   l:0.68, t:0.05, w:0.08, h:0.14, url:LINKS.twitter},
-    {id:'z-twitch',    l:0.40, t:0.32, w:0.10, h:0.18, url:LINKS.twitch},
-    {id:'z-kick',      l:0.57, t:0.32, w:0.10, h:0.18, url:LINKS.kick},
-    {id:'z-shopify',   l:0.26, t:0.55, w:0.55, h:0.38, url:LINKS.shopify},
-    {id:'z-patreon',   l:0.15, t:0.10, w:0.14, h:0.55, url:LINKS.patreon},
+    {id:'z-youtube',   l:0.01, t:0.2157, w:0.1545, h:0.5199, url:LINKS.youtube},
+    {id:'z-spotify',   l:0.7921, t:0.3882, w:0.0809, h:0.1515, url:LINKS.spotify},
+    {id:'z-social',    l:0.3329, t:0.1784, w:0.4185, h:0.1425, url:LINKS.social},
+    {id:'z-facebook',  l:0.3651, t:0.2298, w:0.0357, h:0.078, url:LINKS.facebook},
+    {id:'z-tiktok',    l:0.4054, t:0.2291, w:0.0357, h:0.0835, url:LINKS.tiktok},
+    {id:'z-instagram', l:0.6206, t:0.2151, w:0.0357, h:0.0955, url:LINKS.instagram},
+    {id:'z-twitter',   l:0.6624, t:0.2202, w:0.0341, h:0.0869, url:LINKS.twitter},
+    {id:'z-twitch',    l:0.4291, t:0.3717, w:0.0671, h:0.0824, url:LINKS.twitch},
+    {id:'z-kick',      l:0.5692, t:0.371, w:0.0687, h:0.0807, url:LINKS.kick},
+    {id:'z-shopify',   l:0.4595, t:0.5825, w:0.2457, h:0.2297, url:LINKS.shopify},
+    {id:'z-patreon',   l:0.8297, t:0.7298, w:0.1354, h:0.1178, url:LINKS.patreon},
   ];
 
   zoneDefs.forEach(function(z){ document.getElementById(z.id).addEventListener('click',function(e){ goTo(z.url,e); }); });
+
+  // ---- Hover animations ----
+  // Each station is a short looping clip laid over one spot of the lair (box = fraction of the lair image).
+  // While a station plays, the standing man at the bottom is covered by an empty-floor patch.
+  var FLOOR = {src:'images/stations/floor-empty.jpg', l:540/1376, t:588/768, w:320/1376, h:180/768};
+  var STATIONS = {
+    twitch: {src:'videos/stations/twitch-v2.mp4', l:480/1376, t:250/768, w:320/1376, h:180/768, zones:['z-twitch']}
+    // more stations get added here: typing (socials), kick, spotify, shopify, youtube
+  };
+  var floorEl = document.createElement('img');
+  floorEl.className = 'station'; floorEl.src = FLOOR.src; floorEl.alt = '';
+  overlay.insertBefore(floorEl, overlay.firstChild);
+  var stationEls = [];
+  Object.keys(STATIONS).forEach(function(k){
+    var s = STATIONS[k];
+    var v = document.createElement('video');
+    v.className = 'station'; v.src = s.src; v.muted = true; v.loop = true;
+    v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.preload = 'auto';
+    overlay.insertBefore(v, overlay.firstChild);
+    s.el = v; stationEls.push(s);
+    s.zones.forEach(function(zid){
+      var zEl = document.getElementById(zid); if(!zEl) return;
+      zEl.addEventListener('mouseenter', function(){ v.currentTime = 0; var p = v.play(); if(p&&p.catch) p.catch(function(){}); v.classList.add('on'); floorEl.classList.add('on'); });
+      zEl.addEventListener('mouseleave', function(){ v.classList.remove('on'); floorEl.classList.remove('on'); setTimeout(function(){ if(!v.classList.contains('on')) v.pause(); }, 300); });
+    });
+  });
+  stationEls.push({el:floorEl, l:FLOOR.l, t:FLOOR.t, w:FLOOR.w, h:FLOOR.h});
 
   function layout(){
     var r=img.getBoundingClientRect(), cr=container.getBoundingClientRect();
@@ -191,6 +223,10 @@ function setupLair(){
       var el=document.getElementById(z.id);
       el.style.left=(ox+z.l*r.width)+'px'; el.style.top=(oy+z.t*r.height)+'px';
       el.style.width=(z.w*r.width)+'px';   el.style.height=(z.h*r.height)+'px';
+    });
+    stationEls.forEach(function(s){
+      s.el.style.left=(ox+s.l*r.width)+'px'; s.el.style.top=(oy+s.t*r.height)+'px';
+      s.el.style.width=(s.w*r.width)+'px';   s.el.style.height=(s.h*r.height)+'px';
     });
   }
   if(img.complete&&img.naturalWidth>0) layout();
