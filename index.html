@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PoserTryHard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&display=swap">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;overflow:hidden;background:#fff;font-family:Arial,sans-serif;}
@@ -39,6 +41,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#fff;font-family:Ari
   -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);
           mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 72%,transparent 100%);}
 .station.on{opacity:1;}
+/* Comic-book bubble that pops up over his head for some stations */
+#bubble{position:absolute;pointer-events:none;z-index:5;transform:translate(-50%,-100%) scale(0.2);transform-origin:50% 100%;
+  opacity:0;transition:transform 0.22s cubic-bezier(.3,1.6,.5,1),opacity 0.12s;}
+#bubble.on{opacity:1;transform:translate(-50%,-100%) scale(1);}
+#bubble .b{position:relative;background:#fff;color:#000;border:3px solid #000;border-radius:50%/46%;
+  font-family:'Bangers','Impact','Arial Black',sans-serif;letter-spacing:1px;white-space:nowrap;
+  padding:0.35em 0.8em 0.3em;line-height:1;box-shadow:3px 3px 0 #000;}
+/* speech tail */
+#bubble.speech .b::after{content:"";position:absolute;left:38%;bottom:-0.9em;width:0;height:0;
+  border-left:0.45em solid transparent;border-right:0.25em solid transparent;border-top:1em solid #000;}
+#bubble.speech .b::before{content:"";position:absolute;left:calc(38% + 3px);bottom:-0.62em;width:0;height:0;z-index:1;
+  border-left:0.32em solid transparent;border-right:0.16em solid transparent;border-top:0.72em solid #fff;}
+/* thought tail: little circles */
+#bubble .dot{display:none;position:absolute;background:#fff;border:3px solid #000;border-radius:50%;}
+#bubble.thought .dot{display:block;}
+#bubble .d1{width:0.7em;height:0.7em;left:40%;bottom:-0.95em;}
+#bubble .d2{width:0.42em;height:0.42em;left:44%;bottom:-1.55em;}
+@media (prefers-reduced-motion:reduce){#bubble{transition:opacity 0.12s;}}
 </style>
 </head>
 <body>
@@ -195,10 +215,13 @@ function setupLair(){
   // Each social sits him at a different monitor. The wide "Social (all)" strip keeps whichever social was shown last
   // (or Instagram if none), so sliding between the icons doesn't flicker.
   var STATIONS = {
-    facebook:  {src:'videos/stations/facebook.mp4', l:400/1376, t:270/768, w:320/1376, h:180/768, zones:['z-facebook'], social:true},
+    // Facebook and X share Instagram's seat with a different action plus a comic bubble
+    facebook:  {src:'videos/stations/facebook-laugh.mp4', l:740/1376, t:280/768, w:320/1376, h:180/768, zones:['z-facebook'], social:true,
+                bubble:{text:'HA HA HA!', kind:'speech'}},
     tiktok:    {src:'videos/stations/tiktok.mp4',   l:630/1376, t:351/768, w:320/1376, h:99/768, zones:['z-tiktok'],   social:true},
     instagram: {src:'videos/stations/typing.mp4',   l:740/1376, t:280/768, w:320/1376, h:180/768, zones:['z-instagram'], social:true},
-    x:         {src:'videos/stations/x.mp4',        l:820/1376, t:290/768, w:320/1376, h:180/768, zones:['z-twitter'],  social:true},
+    x:         {src:'videos/stations/x-hmm.mp4',    l:740/1376, t:280/768, w:320/1376, h:180/768, zones:['z-twitter'],  social:true,
+                bubble:{text:'Hmmmm…', kind:'thought'}},
     twitch:  {src:'videos/stations/twitch-v2.mp4', l:480/1376, t:250/768, w:320/1376, h:180/768, zones:['z-twitch']},
     kick:    {src:'videos/stations/kick.mp4',      l:620/1376, t:265/768, w:320/1376, h:180/768, zones:['z-kick']},
     spotify: {src:'videos/stations/spotify.mp4',   l:930/1376, t:250/768, w:320/1376, h:180/768, zones:['z-spotify']},
@@ -208,7 +231,21 @@ function setupLair(){
   var floorEl = document.createElement('img');
   floorEl.className = 'station'; floorEl.src = FLOOR.src; floorEl.alt = '';
   overlay.insertBefore(floorEl, overlay.firstChild);   // floor patch sits on top of the clips
-  var stationEls = [], current = null, leaveTimer = null;
+  var stationEls = [], current = null, leaveTimer = null, bubbleTimer = null;
+  // Comic bubble, anchored just above his head in the shared desk seat
+  var BUBBLE_AT = {x:842/1376, y:345/768};
+  var bubbleEl = document.createElement('div');
+  bubbleEl.id = 'bubble';
+  bubbleEl.innerHTML = '<div class="b"><span class="txt"></span><i class="dot d1"></i><i class="dot d2"></i></div>';
+  overlay.appendChild(bubbleEl);
+  function setBubble(s){
+    clearTimeout(bubbleTimer); bubbleEl.classList.remove('on');
+    if(!s || !s.bubble) return;
+    bubbleTimer = setTimeout(function(){
+      bubbleEl.querySelector('.txt').textContent = s.bubble.text;
+      bubbleEl.className = s.bubble.kind + ' on';
+    }, 350);                                         // let him start the action, then pop the bubble
+  }
   function showStation(s){
     clearTimeout(leaveTimer);
     if(current === s) return;                          // moving between zones of the same station: keep playing
@@ -216,13 +253,14 @@ function setupLair(){
     current = s;
     s.el.currentTime = 0; var p = s.el.play(); if(p&&p.catch) p.catch(function(){});
     s.el.classList.add('on'); floorEl.classList.add('on');
+    setBubble(s);
   }
   function hideStation(){
     clearTimeout(leaveTimer);
     leaveTimer = setTimeout(function(){             // short delay so hopping between overlapping zones doesn't flicker
       if(!current) return;
       var old = current.el; current = null;
-      old.classList.remove('on'); floorEl.classList.remove('on');
+      old.classList.remove('on'); floorEl.classList.remove('on'); setBubble(null);
       setTimeout(function(){ if(!current || current.el!==old) old.pause(); }, 300);
     }, 60);
   }
@@ -264,6 +302,8 @@ function setupLair(){
       s.el.style.left=(ox+s.l*r.width)+'px'; s.el.style.top=(oy+s.t*r.height)+'px';
       s.el.style.width=(s.w*r.width)+'px';   s.el.style.height=(s.h*r.height)+'px';
     });
+    bubbleEl.style.left=(ox+BUBBLE_AT.x*r.width)+'px'; bubbleEl.style.top=(oy+BUBBLE_AT.y*r.height)+'px';
+    bubbleEl.style.fontSize=Math.max(11, r.width*0.017)+'px';
   }
   if(img.complete&&img.naturalWidth>0) layout();
   else img.addEventListener('load',layout);
