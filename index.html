@@ -192,25 +192,48 @@ function setupLair(){
   // Each station is a short looping clip laid over one spot of the lair (box = fraction of the lair image).
   // While a station plays, the standing man at the bottom is covered by an empty-floor patch.
   var FLOOR = {src:'images/stations/floor-empty.jpg', l:540/1376, t:588/768, w:320/1376, h:180/768};
+  var SOCIALS = ['z-social','z-facebook','z-tiktok','z-instagram','z-twitter'];
   var STATIONS = {
-    twitch: {src:'videos/stations/twitch-v2.mp4', l:480/1376, t:250/768, w:320/1376, h:180/768, zones:['z-twitch']}
-    // more stations get added here: typing (socials), kick, spotify, shopify, youtube
+    typing:  {src:'videos/stations/typing.mp4',    l:740/1376, t:280/768, w:320/1376, h:180/768, zones:SOCIALS},
+    twitch:  {src:'videos/stations/twitch-v2.mp4', l:480/1376, t:250/768, w:320/1376, h:180/768, zones:['z-twitch']},
+    kick:    {src:'videos/stations/kick.mp4',      l:620/1376, t:265/768, w:320/1376, h:180/768, zones:['z-kick']},
+    spotify: {src:'videos/stations/spotify.mp4',   l:930/1376, t:250/768, w:320/1376, h:180/768, zones:['z-spotify']},
+    shopify: {src:'videos/stations/shopify.mp4',   l:600/1376, t:420/768, w:400/1376, h:225/768, zones:['z-shopify']},
+    youtube: {src:'videos/stations/youtube.mp4',   l:0,        t:290/768, w:400/1376, h:225/768, zones:['z-youtube']}
   };
   var floorEl = document.createElement('img');
   floorEl.className = 'station'; floorEl.src = FLOOR.src; floorEl.alt = '';
-  overlay.insertBefore(floorEl, overlay.firstChild);
-  var stationEls = [];
+  overlay.insertBefore(floorEl, overlay.firstChild);   // floor patch sits on top of the clips
+  var stationEls = [], current = null, leaveTimer = null;
+  function showStation(s){
+    clearTimeout(leaveTimer);
+    if(current === s) return;                          // moving between zones of the same station: keep playing
+    if(current){ var old = current.el; old.classList.remove('on'); setTimeout(function(){ if(current!==old._s) old.pause(); }, 300); }
+    current = s;
+    s.el.currentTime = 0; var p = s.el.play(); if(p&&p.catch) p.catch(function(){});
+    s.el.classList.add('on'); floorEl.classList.add('on');
+  }
+  function hideStation(){
+    clearTimeout(leaveTimer);
+    leaveTimer = setTimeout(function(){             // short delay so hopping between overlapping zones doesn't flicker
+      if(!current) return;
+      var old = current.el; current = null;
+      old.classList.remove('on'); floorEl.classList.remove('on');
+      setTimeout(function(){ if(!current || current.el!==old) old.pause(); }, 300);
+    }, 60);
+  }
   Object.keys(STATIONS).forEach(function(k){
     var s = STATIONS[k];
     var v = document.createElement('video');
     v.className = 'station'; v.src = s.src; v.muted = true; v.loop = true;
     v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.preload = 'auto';
+    v._s = s;
     overlay.insertBefore(v, overlay.firstChild);
     s.el = v; stationEls.push(s);
     s.zones.forEach(function(zid){
       var zEl = document.getElementById(zid); if(!zEl) return;
-      zEl.addEventListener('mouseenter', function(){ v.currentTime = 0; var p = v.play(); if(p&&p.catch) p.catch(function(){}); v.classList.add('on'); floorEl.classList.add('on'); });
-      zEl.addEventListener('mouseleave', function(){ v.classList.remove('on'); floorEl.classList.remove('on'); setTimeout(function(){ if(!v.classList.contains('on')) v.pause(); }, 300); });
+      zEl.addEventListener('mouseenter', function(){ showStation(s); });
+      zEl.addEventListener('mouseleave', hideStation);
     });
   });
   stationEls.push({el:floorEl, l:FLOOR.l, t:FLOOR.t, w:FLOOR.w, h:FLOOR.h});
