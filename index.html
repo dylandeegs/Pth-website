@@ -165,7 +165,7 @@ function hideAll() { document.querySelectorAll('.act-video').forEach(function(v)
 function playNext() {
   if (current >= videos.length) { morphToLogo(); return; }
   var v = videos[current]; var el = document.getElementById(v.id);
-  hideAll(); el.classList.add('active'); el.currentTime=0; el.playbackRate=PLAYBACK_RATE; el.play();
+  hideAll(); el.classList.add('active'); el.currentTime=0; el.playbackRate=PLAYBACK_RATE; var pp=el.play(); if(pp&&pp.catch) pp.catch(function(){});
   setLabel(v.label); current++;
   setTimeout(playNext, CLIP_DURATION);
 }
