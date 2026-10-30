@@ -108,18 +108,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#fff;font-family:Ari
 <div id="tooltip"></div>
 
 <script>
-var LINKS = {
+var LINKS = {            // '' = coming soon (hover still animates, click does nothing yet)
   youtube:   'https://www.youtube.com/@posertryhard',
-  spotify:   'https://open.spotify.com/show/YOURID',
-  social:    'https://linktr.ee/YOURHANDLE',
-  facebook:  'https://facebook.com/YOURPAGE',
-  tiktok:    'https://tiktok.com/@YOURHANDLE',
+  spotify:   '',
+  social:    '',
+  facebook:  'https://www.facebook.com/posertryhard',
+  tiktok:    'https://www.tiktok.com/@posertryhard',
   instagram: 'https://www.instagram.com/posertryhard/',
   twitter:   'https://x.com/posertryhard',
-  twitch:    'https://twitch.tv/YOURCHANNEL',
-  kick:      'https://kick.com/YOURCHANNEL',
-  shopify:   'https://YOURSTORE.myshopify.com',
-  patreon:   'https://patreon.com/YOURPAGE'
+  twitch:    'https://www.twitch.tv/posertryhard',
+  kick:      'https://kick.com/posertryhard',
+  shopify:   '',
+  patreon:   ''
 };
 
 var PLAYBACK_RATE = 6.0;
@@ -148,7 +148,8 @@ var phase = 'loading';
 
 function onVideoLoaded() {
   loaded++;
-  if (loaded >= total) { phase='playing'; showStandMan(true); setTimeout(function(){ showStandMan(false); playNext(); }, 400); }
+  // start the intro only once, even if a clip reports "loaded" twice
+  if (loaded >= total && phase==='loading') { phase='playing'; showStandMan(true); setTimeout(function(){ showStandMan(false); playNext(); }, 400); }
 }
 var loaded = 0; var total = videos.length;
 videos.forEach(function(v,i) {
@@ -185,7 +186,9 @@ function enterLair() {
   },1400);
 }
 
+var lairReady=false;
 function setupLair(){
+  if(lairReady) return; lairReady=true;   // wire the lair only once
   var img=document.getElementById('lair-img');
   var overlay=document.getElementById('lair-overlay');
   var container=document.getElementById('lair-container');
@@ -320,9 +323,13 @@ function goTo(url,e){
   var rpl=document.createElement('div'); rpl.className='ripple';
   rpl.style.left=e.clientX+'px'; rpl.style.top=e.clientY+'px';
   document.body.appendChild(rpl); setTimeout(function(){ rpl.remove(); },600);
+  if(!url) return;                                   // coming soon: no link yet
   setTimeout(function(){ window.open(url,'_blank'); },200);
 }
-function tip(n){ var t=document.getElementById('tooltip'); t.textContent='↗ Visit '+n; t.style.opacity='1'; }
+var NAME_KEY = {'YouTube':'youtube','Spotify':'spotify','Social Media':'social','Facebook':'facebook','TikTok':'tiktok',
+  'Instagram':'instagram','X / Twitter':'twitter','Twitch':'twitch','Kick':'kick','Shopify':'shopify','Patreon':'patreon'};
+function tip(n){ var t=document.getElementById('tooltip'); var k=NAME_KEY[n];
+  t.textContent = (k && !LINKS[k]) ? n+' \u00b7 coming soon' : '\u2197 Visit '+n; t.style.opacity='1'; }
 function untip(){ document.getElementById('tooltip').style.opacity='0'; }
 </script>
 </body>
